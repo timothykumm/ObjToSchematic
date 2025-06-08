@@ -1,6 +1,7 @@
 const path = require('path');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { VueLoaderPlugin } = require('vue-loader');
 
 module.exports = {
     entry: './src/main.ts',
@@ -10,9 +11,14 @@ module.exports = {
             template: './template.html',
             favicon: './res/static/icon.ico',
         }),
+        new VueLoaderPlugin(),
     ],
     module: {
         rules: [
+            {
+                test: /\.vue$/,
+                loader: 'vue-loader',
+            },
             {
                 test: /\.worker.ts$/,
                 use: [
@@ -38,13 +44,23 @@ module.exports = {
             },
             {
                 test: /\.tsx?$/,
-                use: 'ts-loader',
+                use: [
+                    {
+                        loader: 'ts-loader',
+                        options: {
+                            appendTsSuffixTo: [/\.vue$/],
+                        },
+                    },
+                ],
                 exclude: /node_modules/,
             },
         ],
     },
     resolve: {
-        extensions: ['.tsx', '.ts', '.js'],
+        extensions: ['.tsx', '.ts', '.js', '.vue'],
+        alias: {
+            vue$: 'vue/dist/vue.esm-bundler.js',
+        },
     },
     output: {
         filename: 'bundle.js',

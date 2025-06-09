@@ -1,6 +1,6 @@
-const workerInstance = require('./worker');
+import { doWork } from './worker';
 
 addEventListener('message', async (e) => {
-    const result = await workerInstance.doWork(e.data);
+    const result = await doWork(e.data);
     postMessage(result);
 });

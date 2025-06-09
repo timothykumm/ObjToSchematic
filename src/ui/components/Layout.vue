@@ -5,12 +5,12 @@
         <div class="column-properties">
           <Header />
           <div class="properties-content-vue" v-if="appContextReady">
-            <SettingsGroup :appContext="appContext" :disabled="isBusy" />
-            <ImportGroup :appContext="appContext" :disabled="isBusy" :isImporting="isBusy" />
-            <MaterialsGroup :appContext="appContext" :disabled="isBusy" :materials="materials" />
-            <VoxeliseGroup :appContext="appContext" :disabled="isBusy" :isVoxelising="isBusy" />
-            <AssignGroup :appContext="appContext" :disabled="isBusy" />
-            <ExportGroup :appContext="appContext" :disabled="isBusy" />
+            <SettingsGroup :appContext="appContext" :disabled="!isActionEnabled('Settings')" />
+            <ImportGroup :appContext="appContext" :disabled="!isActionEnabled('Import')" :isImporting="isBusy" />
+            <MaterialsGroup :appContext="appContext" :disabled="!isActionEnabled('Materials')" :materials="materials" />
+            <VoxeliseGroup :appContext="appContext" :disabled="!isActionEnabled('Voxelise')" :isVoxelising="isBusy" />
+            <AssignGroup :appContext="appContext" :disabled="!isActionEnabled('Assign')" />
+            <ExportGroup :appContext="appContext" :disabled="!isActionEnabled('Export')" />
           </div>
           <div v-else class="loading-message">
             Initializing application...
@@ -30,6 +30,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, ref, computed, PropType, getCurrentInstance } from 'vue';
+import { EAction } from '../../util';
 import Header from './Header.vue';
 import Console from './Console.vue';
 import Toolbar from './Toolbar.vue';
@@ -108,6 +109,27 @@ export default defineComponent({
       });
     });
 
+    // Computed properties for action enablement
+    const actionsEnabled = computed(() => {
+      if (!vueBridge.value) return {};
+      
+      // Access the reactive enabledActions directly to ensure reactivity
+      const bridge = vueBridge.value;
+      return {
+        Settings: bridge.enabledActions[EAction.Settings],
+        Import: bridge.enabledActions[EAction.Import],
+        Materials: bridge.enabledActions[EAction.Materials],
+        Voxelise: bridge.enabledActions[EAction.Voxelise],
+        Assign: bridge.enabledActions[EAction.Assign],
+        Export: bridge.enabledActions[EAction.Export],
+      };
+    });
+
+    // Function to check if an action is enabled
+    const isActionEnabled = (actionName: string) => {
+      return actionsEnabled.value[actionName as keyof typeof actionsEnabled.value] || false;
+    };
+
     // Expose to template
     return {
         isBusy,
@@ -115,6 +137,8 @@ export default defineComponent({
         appContext,
         appContextReady,
         vueBridge,
+        actionsEnabled,
+        isActionEnabled,
     };
   },
 });

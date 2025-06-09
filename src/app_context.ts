@@ -401,6 +401,7 @@ export class AppContext {
         const success = await this._executeAction(action);
         if (success) {
             if (action === EAction.Import) {
+                // After import, enable Materials and Voxelise
                 VueUIBridge.Get.enableTo(EAction.Voxelise);
             } else {
                 VueUIBridge.Get.enableTo(action + 1);

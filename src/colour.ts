@@ -1,7 +1,7 @@
 import { AppConfig } from './config';
 import { TBrand } from './util/type_util';
 
-const hsv_rgb = require('hsv-rgb');
+import hsv_rgb from 'hsv-rgb';
 
 export type RGBA = {
     r: number,

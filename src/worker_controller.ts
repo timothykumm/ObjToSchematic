@@ -3,8 +3,7 @@ import { EAppEvent, EventManager } from './event';
 import { AppError, ASSERT } from './util/error_util';
 import { LOG } from './util/log_util';
 import { doWork } from './worker';
-// @ts-ignore
-import AppWorker from './worker_interface.worker.ts';
+import AppWorker from './worker_interface.worker.ts?worker';
 import { TFromWorkerMessage, TToWorkerMessage } from './worker_types';
 
 export type TWorkerJob = {

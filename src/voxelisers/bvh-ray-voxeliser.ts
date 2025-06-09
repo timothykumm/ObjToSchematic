@@ -8,7 +8,7 @@ import { VoxelMesh } from '../voxel_mesh';
 import { VoxeliseParams } from '../worker_types';
 import { IVoxeliser } from './base-voxeliser';
 
-const bvhtree = require('bvh-tree');
+import bvhtree from 'bvh-tree';
 
 /**
  * This voxeliser works by projecting rays onto each triangle

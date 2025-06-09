@@ -5,7 +5,16 @@
       "Bash(grep:*)",
       "Bash(npm run build:*)",
       "Bash(timeout 5 npm start:*)",
-      "Bash(timeout 10 npm start:*)"
+      "Bash(timeout 10 npm start:*)",
+      "Bash(npm install:*)",
+      "Bash(sudo npm install --save-dev vite @vitejs/plugin-vue @types/node vite-plugin-static-copy rollup-plugin-polyfill-node)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(npx vite:*)",
+      "Bash(npm run dist:*)",
+      "Bash(npm start)",
+      "Bash(pkill:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": []
   }

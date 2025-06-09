@@ -1,6 +1,7 @@
 import path from 'path';
 
-import ATLAS_VANILLA from '../res/atlases/vanilla.atlas';
+import ATLAS_VANILLA from '../res/atlases/vanilla.atlas?raw';
+import VANILLA_TEXTURE from '../res/atlases/vanilla.png';
 import { RGBA } from './colour';
 import { AppTypes, AppUtil, TOptional, UV } from './util';
 import { ASSERT } from './util/error_util';
@@ -125,6 +126,11 @@ export class Atlas {
     }
 
     public getAtlasTexturePath() {
+        // In browser environment, return the imported texture URL
+        if (this._atlasName === 'vanilla') {
+            return VANILLA_TEXTURE;
+        }
+        // Fallback for other atlases (if they exist)
         return path.join(AppPaths.Get.atlases, `./${this._atlasName}.png`);
     }
 

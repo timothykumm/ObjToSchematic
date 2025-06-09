@@ -97,6 +97,8 @@ import { AppContext } from '../../app_context';
 import { EAction } from '../../util';
 import { TDithering } from '../../util/type_util'; // TDithering is still from util/type_util
 import { FallableBehaviour, ComboboxItem } from '../types'; // FallableBehaviour and ComboboxItem from types.ts
+import { VueUIBridge } from '../vue_bridge';
+import { Palette } from '../../palette';
 import Combobox from '../components/Combobox.vue';
 import Slider from '../components/Slider.vue';
 import Checkbox from '../components/Checkbox.vue';
@@ -158,6 +160,22 @@ export default defineComponent({
         props.appContext.do(EAction.Assign);
       }
     };
+
+    // Watch for changes in blockPaletteValue and sync with Vue bridge
+    watch(blockPaletteValue, (newBlocks) => {
+      const palette = Palette.create();
+      palette.add(newBlocks);
+      VueUIBridge.Get.setComponentValue('assign', 'blockPalette', palette);
+    }, { deep: true });
+
+    // Sync other component values
+    watch(textureAtlasValue, (value) => VueUIBridge.Get.setComponentValue('assign', 'textureAtlas', value));
+    watch(ditheringValue, (value) => VueUIBridge.Get.setComponentValue('assign', 'dithering', value));
+    watch(ditheringMagnitudeValue, (value) => VueUIBridge.Get.setComponentValue('assign', 'ditheringMagnitude', value));
+    watch(fallableValue, (value) => VueUIBridge.Get.setComponentValue('assign', 'fallable', value));
+    watch(colourAccuracyValue, (value) => VueUIBridge.Get.setComponentValue('assign', 'colourAccuracy', value));
+    watch(calculateLightingValue, (value) => VueUIBridge.Get.setComponentValue('assign', 'calculateLighting', value));
+    watch(lightThresholdValue, (value) => VueUIBridge.Get.setComponentValue('assign', 'lightThreshold', value));
 
     return {
       LOC, // TLocalisedKey should not be returned as it's a type

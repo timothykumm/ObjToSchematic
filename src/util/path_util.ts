@@ -16,7 +16,8 @@ export class AppPaths {
     private _base: string;
 
     private constructor() {
-        this._base = PathUtil.join(__dirname, '../../..');
+        // In browser environment (Vite), use relative paths from public directory
+        this._base = '';
     }
 
     public setBaseDir(dir: string) {
@@ -30,7 +31,7 @@ export class AppPaths {
     }
 
     public get resources() {
-        return PathUtil.join(this._base, './res/');
+        return PathUtil.join(this._base, '/res/');
     }
 
     public get tools() {

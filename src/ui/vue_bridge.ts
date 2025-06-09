@@ -2,6 +2,8 @@ import { reactive, ref } from 'vue';
 import { EAction } from '../util';
 import { TLocalisedString } from '../localiser';
 import { MaterialMapManager } from '../material-map';
+import { Palette } from '../palette';
+import { PALETTE_ALL_RELEASE } from '../../res/palettes/all';
 
 export interface VueUIState {
   isEnabled: (action: EAction) => boolean;
@@ -56,6 +58,24 @@ class VueUIBridge implements VueUIState {
   private constructor() {
     // Initialize with all actions disabled
     this.disableAll();
+    
+    // Initialize blockPalette with default palette
+    this.initializeDefaultComponents();
+  }
+
+  private initializeDefaultComponents(): void {
+    const defaultPalette = Palette.create();
+    defaultPalette.add(PALETTE_ALL_RELEASE);
+    this.setComponentValue('assign', 'blockPalette', defaultPalette);
+    this.setComponentValue('assign', 'textureAtlas', 'vanilla');
+    this.setComponentValue('assign', 'dithering', 'ordered');
+    this.setComponentValue('assign', 'ditheringMagnitude', 32);
+    this.setComponentValue('assign', 'fallable', 'replace-falling');
+    this.setComponentValue('assign', 'colourAccuracy', 5);
+    this.setComponentValue('assign', 'calculateLighting', false);
+    this.setComponentValue('assign', 'lightThreshold', 1);
+    this.setComponentValue('assign', 'contextualAveraging', true);
+    this.setComponentValue('assign', 'errorWeight', 0.2);
   }
 
   isEnabled(action: EAction): boolean {

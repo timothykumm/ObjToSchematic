@@ -1,6 +1,8 @@
 <template>
   <div class="materials-group-vue">
-    <h3 class="group-heading-vue">{{ LOC('materials.heading' as TLocalisedKey) }}</h3>
+    <h3 class="group-heading-vue">
+      {{ LOC("materials.heading" as TLocalisedKey) }}
+    </h3>
     <div class="group-components-vue">
       <PlaceholderInfo
         v-if="!materials || materials.length === 0"
@@ -30,20 +32,20 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue';
-import { LOC, TLocalisedKey } from '../../localiser';
-import { AppContext } from '../../app_context';
-import { EAction } from '../../util';
+import { defineComponent, PropType } from "vue";
+import { LOC, TLocalisedKey } from "../../localiser";
+import { AppContext } from "../../app_context";
+import { EAction } from "../../util";
 // MaterialMapManager might not be directly used here if all updates go via AppContext
 // import { MaterialMapManager } from '../../material-map';
-import { MaterialType } from '../../mesh'; // Only MaterialType enum for event payload
-import MaterialItem from '../components/MaterialItem.vue';
-import { MaterialUIData } from '../types'; // Corrected import
-import PlaceholderInfo from '../components/PlaceholderInfo.vue';
-import Button from '../components/Button.vue';
+import { MaterialType } from "../../mesh"; // Only MaterialType enum for event payload
+import MaterialItem from "../components/MaterialItem.vue";
+import { MaterialUIData } from "../types"; // Corrected import
+import PlaceholderInfo from "../components/PlaceholderInfo.vue";
+import Button from "../components/Button.vue";
 
 export default defineComponent({
-  name: 'MaterialsGroup',
+  name: "MaterialsGroup",
   components: { MaterialItem, PlaceholderInfo, Button },
   props: {
     disabled: {
@@ -51,32 +53,62 @@ export default defineComponent({
       default: false,
     },
     appContext: {
-        type: Object as PropType<AppContext>,
-        required: true,
+      type: Object as PropType<AppContext>,
+      required: true,
     },
-    materials: { // This list is provided by Layout.vue, ultimately from AppContext
-        type: Array as PropType<MaterialUIData[]>,
-        default: () => [],
+    materials: {
+      // This list is provided by Layout.vue, ultimately from AppContext
+      type: Array as PropType<MaterialUIData[]>,
+      default: () => [],
     },
     isProcessing: {
-        type: Boolean,
-        default: false,
-    }
+      type: Boolean,
+      default: false,
+    },
   },
-  setup(props, { emit }) { // emit can be used if we need to bubble up events further
+  setup(props, { emit }) {
+    // emit can be used if we need to bubble up events further
 
-    const handleUpdateMaterial = (event: { materialName: string, propertyName: string, value: any }) => {
-      // TODO: Communicate this change to AppContext/MaterialMapManager
-      // Example: props.appContext.materialManager.updateMaterialProperty(event.materialName, event.propertyName, event.value);
-      // For now, it's assumed AppContext handles this based on EAction.Materials or similar.
-      // Or, if materials prop is meant to be two-way bound (complex), need specific event.
-      console.log('Request to update material:', event.materialName, event.propertyName, event.value);
+    const handleUpdateMaterial = (event: {
+      materialName: string;
+      propertyName: string;
+      value: any;
+    }) => {
+      if (
+        props.appContext &&
+        typeof props.appContext.updateMaterialProperty === "function"
+      ) {
+        props.appContext.updateMaterialProperty(
+          event.materialName,
+          event.propertyName,
+          event.value
+        );
+      } else {
+        console.error(
+          "MaterialsGroup: AppContext prop is not available or updateMaterialProperty method is missing."
+        );
+      }
+      // The original console.log and TODO comments should be removed.
     };
 
-    const handleChangeMaterialType = (event: { materialName: string, newType: MaterialType }) => {
-      // TODO: Communicate this change to AppContext/MaterialMapManager
-      // Example: props.appContext.materialManager.changeMaterialType(event.materialName, event.newType);
-      console.log('Request to change material type:', event.materialName, event.newType);
+    const handleChangeMaterialType = (event: {
+      materialName: string;
+      newType: MaterialType;
+    }) => {
+      if (
+        props.appContext &&
+        typeof props.appContext.handleMaterialTypeChange === "function"
+      ) {
+        props.appContext.handleMaterialTypeChange(
+          event.materialName,
+          event.newType
+        );
+      } else {
+        console.error(
+          "MaterialsGroup: AppContext prop is not available or handleMaterialTypeChange method is missing."
+        );
+      }
+      // Optionally remove or keep the console.log, for this subtask, let's remove it.
     };
 
     const handleMaterialsAction = () => {

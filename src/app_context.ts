@@ -99,6 +99,44 @@ export class AppContext {
     return VueUIBridge.Get;
   }
 
+  // New method here
+  public handleMaterialTypeChange(materialName: string, newType: MaterialType) {
+    if (this._materialManager) {
+      this._materialManager.changeMaterialType(materialName, newType);
+      console.log(
+        `[AppContext] Material type changed for '${materialName}' to ${newType}. Triggering UI update.`
+      );
+      VueUIBridge.Get.updateMaterials(this._materialManager);
+    } else {
+      console.error(
+        "[AppContext] MaterialManager not initialized when trying to change material type."
+      );
+    }
+  }
+
+  // New method here
+  public updateMaterialProperty(
+    materialName: string,
+    propertyName: string,
+    value: any
+  ) {
+    if (this._materialManager) {
+      this._materialManager.updateMaterialProperty(
+        materialName,
+        propertyName,
+        value
+      );
+      console.log(
+        `[AppContext] Property '${propertyName}' for material '${materialName}' updated. Triggering UI refresh.`
+      );
+      VueUIBridge.Get.updateMaterials(this._materialManager);
+    } else {
+      console.error(
+        "[AppContext] MaterialManager not initialized when trying to update material property."
+      );
+    }
+  }
+
   private async _import(): Promise<boolean> {
     // Gather data from the UI to send to the worker
     const components = VueUIBridge.Get.layout.import.components;

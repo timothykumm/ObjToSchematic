@@ -1,9 +1,17 @@
-import { reactive, ref } from 'vue';
-import { EAction } from '../util';
-import { TLocalisedString } from '../localiser';
-import { MaterialMapManager } from '../material-map';
-import { Palette } from '../palette';
-import { PALETTE_ALL_RELEASE } from '../../res/palettes/all';
+import { reactive, ref } from "vue";
+import { EAction } from "../util";
+import { TLocalisedString } from "../localiser";
+import { MaterialMapManager } from "../material-map";
+import {
+  MaterialUIData,
+  SolidMaterialUIData,
+  TexturedMaterialUIData,
+  BaseMaterialUIData,
+  MaterialType,
+  RGBA,
+} from "./types";
+import { Palette } from "../palette";
+import { PALETTE_ALL_RELEASE } from "../../res/palettes/all";
 
 export interface VueUIState {
   isEnabled: (action: EAction) => boolean;
@@ -49,7 +57,7 @@ class VueUIBridge implements VueUIState {
     materials: {},
     voxelise: {},
     assign: {},
-    export: {}
+    export: {},
   });
 
   // Materials state
@@ -58,7 +66,7 @@ class VueUIBridge implements VueUIState {
   private constructor() {
     // Initialize with all actions disabled
     this.disableAll();
-    
+
     // Initialize blockPalette with default palette
     this.initializeDefaultComponents();
   }
@@ -66,16 +74,16 @@ class VueUIBridge implements VueUIState {
   private initializeDefaultComponents(): void {
     const defaultPalette = Palette.create();
     defaultPalette.add(PALETTE_ALL_RELEASE);
-    this.setComponentValue('assign', 'blockPalette', defaultPalette);
-    this.setComponentValue('assign', 'textureAtlas', 'vanilla');
-    this.setComponentValue('assign', 'dithering', 'ordered');
-    this.setComponentValue('assign', 'ditheringMagnitude', 32);
-    this.setComponentValue('assign', 'fallable', 'replace-falling');
-    this.setComponentValue('assign', 'colourAccuracy', 5);
-    this.setComponentValue('assign', 'calculateLighting', false);
-    this.setComponentValue('assign', 'lightThreshold', 1);
-    this.setComponentValue('assign', 'contextualAveraging', true);
-    this.setComponentValue('assign', 'errorWeight', 0.2);
+    this.setComponentValue("assign", "blockPalette", defaultPalette);
+    this.setComponentValue("assign", "textureAtlas", "vanilla");
+    this.setComponentValue("assign", "dithering", "ordered");
+    this.setComponentValue("assign", "ditheringMagnitude", 32);
+    this.setComponentValue("assign", "fallable", "replace-falling");
+    this.setComponentValue("assign", "colourAccuracy", 5);
+    this.setComponentValue("assign", "calculateLighting", false);
+    this.setComponentValue("assign", "lightThreshold", 1);
+    this.setComponentValue("assign", "contextualAveraging", true);
+    this.setComponentValue("assign", "errorWeight", 0.2);
   }
 
   isEnabled(action: EAction): boolean {
@@ -89,7 +97,7 @@ class VueUIBridge implements VueUIState {
   }
 
   disableAll(): void {
-    Object.keys(this.enabledActions).forEach(key => {
+    Object.keys(this.enabledActions).forEach((key) => {
       this.enabledActions[parseInt(key) as EAction] = false;
     });
   }
@@ -110,21 +118,74 @@ class VueUIBridge implements VueUIState {
   }
 
   updateMaterials(materialManager: MaterialMapManager): void {
-    // Convert materials to UI format
-    const materialsArray: any[] = [];
-    console.log('updateMaterials called, materials map size:', materialManager.materials.size);
-    materialManager.materials.forEach((material, name) => {
-      console.log('Processing material:', name, material);
-      materialsArray.push({
-        name,
-        type: material.type,
-        // Add color based on material type
-        colour: (material as any).colour || (material as any).color || null,
-        // Add other material properties as needed
+    const newMaterialsArray: MaterialUIData[] = [];
+    // console.log('[VueUIBridge.updateMaterials] Called. Input materials map size:', materialManager.materials.size); // REMOVED
+
+    if (materialManager.materials.size > 0) {
+      materialManager.materials.forEach((coreMaterial: any, name: string) => {
+        // console.log(`[VueUIBridge.updateMaterials] Processing coreMaterial - Name: '${name}', Type: ${coreMaterial.type}, Data:`, coreMaterial ? JSON.parse(JSON.stringify(coreMaterial)) : 'undefined/null'); // REMOVED
+        let uiMaterial: MaterialUIData | null = null;
+
+        if (coreMaterial.type === MaterialType.solid) {
+          uiMaterial = {
+            name,
+            type: MaterialType.solid,
+            colour: coreMaterial.colour || ({ r: 1, g: 1, b: 1, a: 1 } as RGBA),
+            canBeTextured:
+              coreMaterial.canBeTextured !== undefined
+                ? coreMaterial.canBeTextured
+                : true,
+          } as SolidMaterialUIData;
+        } else if (coreMaterial.type === MaterialType.textured) {
+          const transparencyData = coreMaterial.transparency || {
+            type: "None",
+          };
+          uiMaterial = {
+            name: coreMaterial.name || name,
+            type: MaterialType.textured,
+            canBeTextured: true,
+            diffuseMap: coreMaterial.diffuseMap || coreMaterial.diffuse || null,
+            interpolation: coreMaterial.interpolation || "linear",
+            extension: coreMaterial.extension || "repeat",
+            transparency: {
+              type: transparencyData.type || "None",
+              alphaValue: transparencyData.alphaValue,
+              alphaMap: transparencyData.alphaMap || null,
+              alphaChannel: transparencyData.alphaChannel,
+            },
+          } as TexturedMaterialUIData;
+        } else {
+          // console.warn(`[VueUIBridge.updateMaterials] Unknown material type for '${name}':`, coreMaterial.type); // Keep this warn? For now, removing all.
+          uiMaterial = {
+            name,
+            type: coreMaterial.type,
+            canBeTextured: false,
+          } as BaseMaterialUIData;
+        }
+
+        if (uiMaterial) {
+          // console.log(`[VueUIBridge.updateMaterials] Created uiMaterial for '${uiMaterial.name}':`, uiMaterial ? JSON.parse(JSON.stringify(uiMaterial)) : 'undefined/null'); // REMOVED
+          newMaterialsArray.push(uiMaterial);
+        }
       });
-    });
-    console.log('Final materials array:', materialsArray);
-    this.materials.value = materialsArray;
+    } else {
+      // console.log('[VueUIBridge.updateMaterials] Received empty materials map from MaterialMapManager.'); // REMOVED
+    }
+
+    // REMOVED --- UI-VISIBLE DEBUG DATA ---
+    // const debugMaterial: SolidMaterialUIData = {
+    //     name: "---DEBUG_MATERIAL_TEST---",
+    //     type: MaterialType.solid,
+    //     colour: { r: 1.0, g: 0.0, b: 1.0, a: 1.0 } as RGBA,
+    //     canBeTextured: false
+    // };
+    // newMaterialsArray.push(debugMaterial);
+    // console.log('[VueUIBridge.updateMaterials] Added hardcoded ---DEBUG_MATERIAL_TEST---.'); // REMOVED
+    // --- END UI-VISIBLE DEBUG DATA ---
+
+    // console.log('[VueUIBridge.updateMaterials] Final newMaterialsArray to be assigned (snapshot):', newMaterialsArray ? JSON.parse(JSON.stringify(newMaterialsArray)) : 'undefined/null'); // REMOVED
+    this.materials.value = newMaterialsArray;
+    // console.log('[VueUIBridge.updateMaterials] this.materials.value updated.'); // REMOVED
   }
 
   // Legacy compatibility methods to replace UI.Get calls
@@ -134,7 +195,7 @@ class VueUIBridge implements VueUIState {
       setProgress: (progress: number) => {
         // TODO: Implement progress tracking if needed
         // Could update a reactive progress value here
-      }
+      },
     };
   }
 
@@ -144,100 +205,113 @@ class VueUIBridge implements VueUIState {
       import: {
         components: {
           input: {
-            getValue: () => this.getComponentValue('import', 'input')
+            getValue: () => this.getComponentValue("import", "input"),
           },
           rotation: {
-            getValue: () => this.getComponentValue('import', 'rotation')
-          }
-        }
+            getValue: () => this.getComponentValue("import", "rotation"),
+          },
+        },
       },
       voxelise: {
         components: {
           constraintAxis: {
-            getValue: () => this.getComponentValue('voxelise', 'constraintAxis'),
-            setValue: (value: any) => this.setComponentValue('voxelise', 'constraintAxis', value),
+            getValue: () =>
+              this.getComponentValue("voxelise", "constraintAxis"),
+            setValue: (value: any) =>
+              this.setComponentValue("voxelise", "constraintAxis", value),
             setOptionEnabled: (index: number, enabled: boolean) => {
               // TODO: Implement option enabling/disabling
               // Could update reactive option states here
-            }
+            },
           },
           size: {
-            getValue: () => this.getComponentValue('voxelise', 'size'),
-            setValue: (value: any) => this.setComponentValue('voxelise', 'size', value)
+            getValue: () => this.getComponentValue("voxelise", "size"),
+            setValue: (value: any) =>
+              this.setComponentValue("voxelise", "size", value),
           },
           useMultisampleColouring: {
-            getValue: () => this.getComponentValue('voxelise', 'useMultisampleColouring')
+            getValue: () =>
+              this.getComponentValue("voxelise", "useMultisampleColouring"),
           },
           voxeliser: {
-            getValue: () => this.getComponentValue('voxelise', 'voxeliser')
+            getValue: () => this.getComponentValue("voxelise", "voxeliser"),
           },
           ambientOcclusion: {
-            getValue: () => this.getComponentValue('voxelise', 'ambientOcclusion')
+            getValue: () =>
+              this.getComponentValue("voxelise", "ambientOcclusion"),
           },
           enableMultisample: {
-            getValue: () => this.getComponentValue('voxelise', 'enableMultisample')
+            getValue: () =>
+              this.getComponentValue("voxelise", "enableMultisample"),
           },
           textureFiltering: {
-            getValue: () => this.getComponentValue('voxelise', 'textureFiltering')
+            getValue: () =>
+              this.getComponentValue("voxelise", "textureFiltering"),
           },
           enableTextures: {
-            getValue: () => this.getComponentValue('voxelise', 'enableTextures')
+            getValue: () =>
+              this.getComponentValue("voxelise", "enableTextures"),
           },
           multisampleColouring: {
-            getValue: () => this.getComponentValue('voxelise', 'multisampleColouring')
+            getValue: () =>
+              this.getComponentValue("voxelise", "multisampleColouring"),
           },
           voxelOverlapRule: {
-            getValue: () => this.getComponentValue('voxelise', 'voxelOverlapRule')
-          }
-        }
+            getValue: () =>
+              this.getComponentValue("voxelise", "voxelOverlapRule"),
+          },
+        },
       },
       assign: {
         components: {
           textureAtlas: {
-            getValue: () => this.getComponentValue('assign', 'textureAtlas')
+            getValue: () => this.getComponentValue("assign", "textureAtlas"),
           },
           blockPalette: {
-            getValue: () => this.getComponentValue('assign', 'blockPalette')
+            getValue: () => this.getComponentValue("assign", "blockPalette"),
           },
           dithering: {
-            getValue: () => this.getComponentValue('assign', 'dithering')
+            getValue: () => this.getComponentValue("assign", "dithering"),
           },
           colourSpace: {
-            getValue: () => this.getComponentValue('assign', 'colourSpace')
+            getValue: () => this.getComponentValue("assign", "colourSpace"),
           },
           fallable: {
-            getValue: () => this.getComponentValue('assign', 'fallable')
+            getValue: () => this.getComponentValue("assign", "fallable"),
           },
           resolution: {
-            getValue: () => this.getComponentValue('assign', 'resolution')
+            getValue: () => this.getComponentValue("assign", "resolution"),
           },
           calculateLighting: {
-            getValue: () => this.getComponentValue('assign', 'calculateLighting')
+            getValue: () =>
+              this.getComponentValue("assign", "calculateLighting"),
           },
           lightThreshold: {
-            getValue: () => this.getComponentValue('assign', 'lightThreshold')
+            getValue: () => this.getComponentValue("assign", "lightThreshold"),
           },
           ditheringMagnitude: {
-            getValue: () => this.getComponentValue('assign', 'ditheringMagnitude')
+            getValue: () =>
+              this.getComponentValue("assign", "ditheringMagnitude"),
           },
           colourAccuracy: {
-            getValue: () => this.getComponentValue('assign', 'colourAccuracy')
+            getValue: () => this.getComponentValue("assign", "colourAccuracy"),
           },
           contextualAveraging: {
-            getValue: () => this.getComponentValue('assign', 'contextualAveraging')
+            getValue: () =>
+              this.getComponentValue("assign", "contextualAveraging"),
           },
           errorWeight: {
-            getValue: () => this.getComponentValue('assign', 'errorWeight')
-          }
-        }
+            getValue: () => this.getComponentValue("assign", "errorWeight"),
+          },
+        },
       },
       export: {
         components: {
           export: {
-            getValue: () => this.getComponentValue('export', 'export')
-          }
-        }
-      }
+            getValue: () => this.getComponentValue("export", "export"),
+          },
+        },
+      },
     };
   }
 
@@ -247,17 +321,19 @@ class VueUIBridge implements VueUIState {
       voxelise: {
         components: {
           constraintAxis: {
-            setValue: (value: any) => this.setComponentValue('voxelise', 'constraintAxis', value),
+            setValue: (value: any) =>
+              this.setComponentValue("voxelise", "constraintAxis", value),
             setOptionEnabled: (index: number, enabled: boolean) => {
               // TODO: Implement constraint axis option enabling/disabling
               // Could update reactive option states here
-            }
+            },
           },
           size: {
-            setValue: (value: any) => this.setComponentValue('voxelise', 'size', value)
-          }
-        }
-      }
+            setValue: (value: any) =>
+              this.setComponentValue("voxelise", "size", value),
+          },
+        },
+      },
     };
   }
 

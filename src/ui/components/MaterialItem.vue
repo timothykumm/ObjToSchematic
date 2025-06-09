@@ -1,8 +1,11 @@
 <template>
-  <div class="material-item-vue config-component-vue" :class="{ 'disabled': disabled }">
+  <div
+    class="material-item-vue config-component-vue"
+    :class="{ disabled: disabled }"
+  >
     <div class="material-header-vue config-label-vue" @click="toggleExpanded">
       <span>{{ materialName }}</span>
-      <span class="expander-icon-vue">{{ isExpanded ? '▼' : '►' }}</span>
+      <span class="expander-icon-vue">{{ isExpanded ? "▼" : "►" }}</span>
     </div>
 
     <div v-if="isExpanded" class="material-details-vue config-actuator-vue">
@@ -26,7 +29,10 @@
           label="materials.components.alpha"
           :modelValue="material.colour.a"
           @update:modelValue="updateAlpha($event)"
-          :min="0" :max="1" :step="0.01" :decimals="2"
+          :min="0"
+          :max="1"
+          :step="0.01"
+          :decimals="2"
           :disabled="disabled"
         />
       </template>
@@ -65,7 +71,10 @@
           label="materials.components.alpha"
           :modelValue="material.transparency.alphaValue"
           @update:modelValue="updateTransparencyProp('alphaValue', $event)"
-          :min="0" :max="1" :step="0.01" :decimals="2"
+          :min="0"
+          :max="1"
+          :step="0.01"
+          :decimals="2"
           :disabled="disabled"
         />
         <template v-if="material.transparency.type === 'UseAlphaMap'">
@@ -89,29 +98,29 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, PropType } from 'vue';
-import { LOC, TLocalisedKey } from '../../localiser'; // Added TLocalisedKey
+import { defineComponent, ref, computed, PropType } from "vue";
+import { LOC, TLocalisedKey } from "../../localiser"; // Added TLocalisedKey
 import {
-    MaterialUIData,
-    RGBA, // RGBA should be available via ../types if re-exported correctly
-    MaterialType,
-    EImageChannel,
-    TTexelInterpolation,
-    TTexelExtension,
-    TTransparencyTypes,
-    ComboboxItem,
-    SolidMaterialUIData, // For type guard
-    TexturedMaterialUIData // For type guard
-} from '../types';
+  MaterialUIData,
+  RGBA, // RGBA should be available via ../types if re-exported correctly
+  MaterialType,
+  EImageChannel,
+  TTexelInterpolation,
+  TTexelExtension,
+  TTransparencyTypes,
+  ComboboxItem,
+  SolidMaterialUIData, // For type guard
+  TexturedMaterialUIData, // For type guard
+} from "../types";
 
-import MaterialTypeSwitcher from './MaterialTypeSwitcher.vue';
-import ColourPicker from './ColourPicker.vue';
-import Slider from './Slider.vue';
-import ImageInput from './ImageInput.vue'; // ImageInputValue is now part of MaterialUIData
-import Combobox from './Combobox.vue';
+import MaterialTypeSwitcher from "./MaterialTypeSwitcher.vue";
+import ColourPicker from "./ColourPicker.vue";
+import Slider from "./Slider.vue";
+import ImageInput from "./ImageInput.vue"; // ImageInputValue is now part of MaterialUIData
+import Combobox from "./Combobox.vue";
 
 export default defineComponent({
-  name: 'MaterialItem',
+  name: "MaterialItem",
   components: {
     MaterialTypeSwitcher,
     ColourPicker,
@@ -131,9 +140,9 @@ export default defineComponent({
     disabled: {
       type: Boolean,
       default: false,
-    }
+    },
   },
-  emits: ['updateMaterial', 'changeMaterialType'],
+  emits: ["updateMaterial", "changeMaterialType"],
   setup(props, { emit }) {
     const isExpanded = ref(true);
 
@@ -142,11 +151,14 @@ export default defineComponent({
     };
 
     const onChangeType = (newType: MaterialType) => {
-        emit('changeMaterialType', { materialName: props.materialName, newType });
+      emit("changeMaterialType", { materialName: props.materialName, newType });
     };
 
-    const updateMaterialProp = (propName: keyof MaterialUIData | string, value: any) => {
-      emit('updateMaterial', {
+    const updateMaterialProp = (
+      propName: keyof MaterialUIData | string,
+      value: any
+    ) => {
+      emit("updateMaterial", {
         materialName: props.materialName,
         propertyName: propName,
         value,
@@ -154,61 +166,107 @@ export default defineComponent({
     };
 
     const updateAlpha = (newAlpha: number) => {
-        // For SolidMaterial, alpha is part of RGBA color
-        if (isSolidMaterial(props.material)) { // Use the type guard
-            const newColour = { ...props.material.colour, a: newAlpha };
-            updateMaterialProp('colour', newColour);
-        }
+      // For SolidMaterial, alpha is part of RGBA color
+      if (isSolidMaterial(props.material)) {
+        // Use the type guard
+        const newColour = { ...props.material.colour, a: newAlpha };
+        updateMaterialProp("colour", newColour);
+      }
     };
 
     const updateTransparencyType = (newType: TTransparencyTypes) => {
-        if (isTexturedMaterial(props.material)) {
-            updateMaterialProp('transparency', { ...props.material.transparency, type: newType });
-        }
+      if (isTexturedMaterial(props.material)) {
+        updateMaterialProp("transparency", {
+          ...props.material.transparency,
+          type: newType,
+        });
+      }
     };
 
     const updateTransparencyProp = (propName: string, value: any) => {
-        if (isTexturedMaterial(props.material)) {
-            // Further check if transparency object itself exists, though isTexturedMaterial should imply it for TexturedMaterialUIData
-            if (props.material.transparency) {
-                 updateMaterialProp('transparency', { ...props.material.transparency, [propName]: value });
-            }
+      if (isTexturedMaterial(props.material)) {
+        // Further check if transparency object itself exists, though isTexturedMaterial should imply it for TexturedMaterialUIData
+        if (props.material.transparency) {
+          updateMaterialProp("transparency", {
+            ...props.material.transparency,
+            [propName]: value,
+          });
         }
+      }
     };
 
-
     // Options for Comboboxes
-    const filteringOptions = computed((): ComboboxItem<TTexelInterpolation>[] => [
-      { payload: 'linear', displayLocKey: 'materials.components.linear' as TLocalisedKey },
-      { payload: 'nearest', displayLocKey: 'materials.components.nearest' as TLocalisedKey },
+    const filteringOptions = computed(
+      (): ComboboxItem<TTexelInterpolation>[] => [
+        {
+          payload: "linear",
+          displayLocKey: "materials.components.linear" as TLocalisedKey,
+        },
+        {
+          payload: "nearest",
+          displayLocKey: "materials.components.nearest" as TLocalisedKey,
+        },
+      ]
+    );
+
+    const wrapOptions = computed((): ComboboxItem<TTexelExtension>[] => [
+      // Corrected TTextureExtension to TTexelExtension
+      {
+        payload: "clamp",
+        displayLocKey: "materials.components.clamp" as TLocalisedKey,
+      },
+      {
+        payload: "repeat",
+        displayLocKey: "materials.components.repeat" as TLocalisedKey,
+      },
     ]);
 
-    const wrapOptions = computed((): ComboboxItem<TTexelExtension>[] => [ // Corrected TTextureExtension to TTexelExtension
-      { payload: 'clamp', displayLocKey: 'materials.components.clamp' as TLocalisedKey },
-      { payload: 'repeat', displayLocKey: 'materials.components.repeat' as TLocalisedKey },
-    ]);
-
-    const transparencyTypeOptions = computed((): ComboboxItem<TTransparencyTypes>[] => [
-      { payload: 'None', displayLocKey: 'materials.components.none' as TLocalisedKey },
-      { payload: 'UseAlphaMap', displayLocKey: 'materials.components.alpha_map' as TLocalisedKey },
-      { payload: 'UseAlphaValue', displayLocKey: 'materials.components.alpha_constant' as TLocalisedKey },
-      { payload: 'UseDiffuseMapAlphaChannel', displayLocKey: 'materials.components.diffuse_map_alpha_channel' as TLocalisedKey },
-    ]);
+    const transparencyTypeOptions = computed(
+      (): ComboboxItem<TTransparencyTypes>[] => [
+        {
+          payload: "None",
+          displayLocKey: "materials.components.none" as TLocalisedKey,
+        },
+        {
+          payload: "UseAlphaMap",
+          displayLocKey: "materials.components.alpha_map" as TLocalisedKey,
+        },
+        {
+          payload: "UseAlphaValue",
+          displayLocKey: "materials.components.alpha_constant" as TLocalisedKey,
+        },
+        {
+          payload: "UseDiffuseMapAlphaChannel",
+          displayLocKey:
+            "materials.components.diffuse_map_alpha_channel" as TLocalisedKey,
+        },
+      ]
+    );
 
     const imageChannelOptions = computed((): ComboboxItem<EImageChannel>[] => [
-      { payload: EImageChannel.R, displayLocKey: 'misc.red' as TLocalisedKey },
-      { payload: EImageChannel.G, displayLocKey: 'misc.green' as TLocalisedKey },
-      { payload: EImageChannel.B, displayLocKey: 'misc.blue' as TLocalisedKey },
-      { payload: EImageChannel.A, displayLocKey: 'misc.alpha' as TLocalisedKey },
+      { payload: EImageChannel.R, displayLocKey: "misc.red" as TLocalisedKey },
+      {
+        payload: EImageChannel.G,
+        displayLocKey: "misc.green" as TLocalisedKey,
+      },
+      { payload: EImageChannel.B, displayLocKey: "misc.blue" as TLocalisedKey },
+      {
+        payload: EImageChannel.A,
+        displayLocKey: "misc.alpha" as TLocalisedKey,
+      },
     ]);
 
     // Type guard for textured material specific properties
-    const isTexturedMaterial = (mat: MaterialUIData): mat is TexturedMaterialUIData => {
-        return mat.type === MaterialType.textured;
+    const isTexturedMaterial = (
+      mat: MaterialUIData
+    ): mat is TexturedMaterialUIData => {
+      return mat.type === MaterialType.textured;
     };
 
-    const isSolidMaterial = (mat: MaterialUIData): mat is SolidMaterialUIData => {
-        return mat.type === MaterialType.solid;
+    const isSolidMaterial = (
+      mat: MaterialUIData
+    ): mat is SolidMaterialUIData => {
+      return mat.type === MaterialType.solid;
     };
 
     return {
@@ -227,6 +285,7 @@ export default defineComponent({
       transparencyTypeOptions,
       imageChannelOptions,
       LOC,
+      MaterialType, // Added MaterialType
     };
   },
 });
@@ -252,11 +311,10 @@ export default defineComponent({
   user-select: none;
 }
 .material-item-vue.disabled .material-header-vue {
-    background-color: #f5f5f5;
-    color: #aaa;
-    cursor: not-allowed;
+  background-color: #f5f5f5;
+  color: #aaa;
+  cursor: not-allowed;
 }
-
 
 .expander-icon-vue {
   font-size: 0.8em;
@@ -274,10 +332,9 @@ export default defineComponent({
 /* Standardize spacing for config components used within */
 /* Using :deep for child component styling */
 :deep(.config-component-vue) {
-    padding: 4px 0; /* Reduced padding for nested components */
+  padding: 4px 0; /* Reduced padding for nested components */
 }
 :deep(.config-label-vue) {
-    font-size: 0.9em; /* Slightly smaller labels for nested items */
+  font-size: 0.9em; /* Slightly smaller labels for nested items */
 }
-
 </style>

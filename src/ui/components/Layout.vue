@@ -5,16 +5,35 @@
         <div class="column-properties">
           <Header />
           <div class="properties-content-vue" v-if="appContextReady">
-            <SettingsGroup :appContext="appContext" :disabled="!isActionEnabled('Settings')" />
-            <ImportGroup :appContext="appContext" :disabled="!isActionEnabled('Import')" :isImporting="isBusy" />
-            <MaterialsGroup :appContext="appContext" :disabled="!isActionEnabled('Materials')" :materials="materials" />
-            <VoxeliseGroup :appContext="appContext" :disabled="!isActionEnabled('Voxelise')" :isVoxelising="isBusy" />
-            <AssignGroup :appContext="appContext" :disabled="!isActionEnabled('Assign')" />
-            <ExportGroup :appContext="appContext" :disabled="!isActionEnabled('Export')" />
+            <SettingsGroup
+              :appContext="appContext"
+              :disabled="!isActionEnabled('Settings')"
+            />
+            <ImportGroup
+              :appContext="appContext"
+              :disabled="!isActionEnabled('Import')"
+              :isImporting="isBusy"
+            />
+            <MaterialsGroup
+              :appContext="appContext"
+              :disabled="!isActionEnabled('Materials')"
+              :materials="materialsForTemplate"
+            />
+            <VoxeliseGroup
+              :appContext="appContext"
+              :disabled="!isActionEnabled('Voxelise')"
+              :isVoxelising="isBusy"
+            />
+            <AssignGroup
+              :appContext="appContext"
+              :disabled="!isActionEnabled('Assign')"
+            />
+            <ExportGroup
+              :appContext="appContext"
+              :disabled="!isActionEnabled('Export')"
+            />
           </div>
-          <div v-else class="loading-message">
-            Initializing application...
-          </div>
+          <div v-else class="loading-message">Initializing application...</div>
         </div>
         <div class="column-console">
           <Console />
@@ -29,25 +48,35 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref, computed, watch, PropType, getCurrentInstance } from 'vue';
-import { EAction } from '../../util';
-import Header from './Header.vue';
-import Console from './Console.vue';
-import Toolbar from './Toolbar.vue';
-import Split from 'split.js';
+import {
+  defineComponent,
+  onMounted,
+  ref,
+  computed,
+  watch,
+  PropType,
+  getCurrentInstance,
+  watchEffect,
+} from "vue";
+import { VueUIBridge } from "../vue_bridge"; // Added import
+import { EAction } from "../../util";
+import Header from "./Header.vue";
+import Console from "./Console.vue";
+import Toolbar from "./Toolbar.vue";
+import Split from "split.js";
 
 // Import Group Components
-import SettingsGroup from '../groups/SettingsGroup.vue';
-import ImportGroup from '../groups/ImportGroup.vue';
-import MaterialsGroup from '../groups/MaterialsGroup.vue';
-import VoxeliseGroup from '../groups/VoxeliseGroup.vue';
-import AssignGroup from '../groups/AssignGroup.vue';
-import ExportGroup from '../groups/ExportGroup.vue';
-import { AppContext } from '../../app_context';
-import { MaterialUIData } from '../types'; // Import from new types file
+import SettingsGroup from "../groups/SettingsGroup.vue";
+import ImportGroup from "../groups/ImportGroup.vue";
+import MaterialsGroup from "../groups/MaterialsGroup.vue";
+import VoxeliseGroup from "../groups/VoxeliseGroup.vue";
+import AssignGroup from "../groups/AssignGroup.vue";
+import ExportGroup from "../groups/ExportGroup.vue";
+import { AppContext } from "../../app_context";
+import { MaterialUIData } from "../types"; // Import from new types file
 
 export default defineComponent({
-  name: 'Layout',
+  name: "Layout",
   components: {
     Header,
     Console,
@@ -61,7 +90,7 @@ export default defineComponent({
   },
   setup() {
     const isBusy = ref(false);
-    const materials = ref<MaterialUIData[]>([]);
+    // const materials = ref<MaterialUIData[]>([]); // REMOVED
     const appContext = ref<AppContext | null>(null);
     const appContextReady = ref(false);
     const vueBridge = ref<any>(null);
@@ -69,47 +98,56 @@ export default defineComponent({
     // Get the current Vue instance to access global properties
     const instance = getCurrentInstance();
 
+    const materialsForTemplate = computed(() => {
+      const currentMaterials = VueUIBridge.Get.materials.value;
+      // console.log('[Layout.vue computed materialsForTemplate] VueUIBridge.Get.materials.value:', currentMaterials ? JSON.parse(JSON.stringify(currentMaterials)) : String(currentMaterials)); // REMOVED
+      return currentMaterials ?? []; // Ensure it's always an array for the prop
+    });
+
     onMounted(() => {
-      // Check for AppContext availability
+      // console.log('[Layout.vue] onMounted hook entered.'); // REMOVED
       const checkAppContext = () => {
+        // console.log('[Layout.vue checkAppContext] Entered.'); // REMOVED
+        // console.log('[Layout.vue checkAppContext] $appContextReady status:', instance?.appContext.config.globalProperties.$appContextReady); // REMOVED
         if (instance?.appContext.config.globalProperties.$appContextReady) {
-          appContext.value = instance.appContext.config.globalProperties.$appContext;
+          // console.log('[Layout.vue checkAppContext] AppContext is ready.'); // REMOVED
+          appContext.value =
+            instance.appContext.config.globalProperties.$appContext;
           appContextReady.value = true;
           vueBridge.value = appContext.value!.getVueUIBridge();
-          materials.value = vueBridge.value.materials.value;
-          
-          // Watch for materials changes to keep them synchronized
-          watch(() => vueBridge.value.materials.value, (newMaterials) => {
-            materials.value = newMaterials;
-          }, { deep: true });
+          // console.log('[Layout.vue checkAppContext] Assigned vueBridge.value:', vueBridge.value); // REMOVED
+          // console.log('[Layout.vue checkAppContext] vueBridge.value.materials (the ref object):', vueBridge.value.materials); // REMOVED
+
+          // REMOVED initial sync and watchEffect for local materials
         } else {
+          // console.log('[Layout.vue checkAppContext] AppContext not ready, scheduling retry.'); // REMOVED
           setTimeout(checkAppContext, 50);
         }
       };
       checkAppContext();
 
       // Setup Split.js when component mounts
-      Split(['.column-sidebar', '.column-canvas'], {
+      Split([".column-sidebar", ".column-canvas"], {
         sizes: [30, 70],
         minSize: [300, 400],
         gutterSize: 8,
         elementStyle: (dimension, size, gutterSize) => ({
-            'flex-basis': `calc(${size}% - ${gutterSize}px)`,
+          "flex-basis": `calc(${size}% - ${gutterSize}px)`,
         }),
         gutterStyle: (dimension, gutterSize) => ({
-            'flex-basis': `${gutterSize}px`,
+          "flex-basis": `${gutterSize}px`,
         }),
       });
-      Split(['.column-properties', '.column-console'], {
+      Split([".column-properties", ".column-console"], {
         sizes: [80, 20],
         minSize: [200, 100],
-        direction: 'vertical',
+        direction: "vertical",
         gutterSize: 8,
         elementStyle: (dimension, size, gutterSize) => ({
-            'height': `calc(${size}% - ${gutterSize}px)`,
+          height: `calc(${size}% - ${gutterSize}px)`,
         }),
         gutterStyle: (dimension, gutterSize) => ({
-            'height': `${gutterSize}px`,
+          height: `${gutterSize}px`,
         }),
       });
     });
@@ -117,7 +155,7 @@ export default defineComponent({
     // Computed properties for action enablement
     const actionsEnabled = computed(() => {
       if (!vueBridge.value) return {};
-      
+
       // Access the reactive enabledActions directly to ensure reactivity
       const bridge = vueBridge.value;
       return {
@@ -132,18 +170,21 @@ export default defineComponent({
 
     // Function to check if an action is enabled
     const isActionEnabled = (actionName: string) => {
-      return actionsEnabled.value[actionName as keyof typeof actionsEnabled.value] || false;
+      return (
+        actionsEnabled.value[actionName as keyof typeof actionsEnabled.value] ||
+        false
+      );
     };
 
     // Expose to template
     return {
-        isBusy,
-        materials,
-        appContext,
-        appContextReady,
-        vueBridge,
-        actionsEnabled,
-        isActionEnabled,
+      isBusy,
+      materialsForTemplate, // MODIFIED
+      appContext,
+      appContextReady,
+      vueBridge,
+      actionsEnabled,
+      isActionEnabled,
     };
   },
 });
@@ -243,7 +284,6 @@ export default defineComponent({
   display: block;
   width: 100%;
 }
-
 
 .gutter {
   background-color: #adb5bd;

@@ -4,6 +4,7 @@ import { AppAnalytics } from "./analytics";
 import { FallableBehaviour } from "./block_mesh";
 import { ArcballCamera } from "./camera";
 import { AppConfig } from "./config";
+import { MaterialType } from "./mesh";
 import { EAppEvent, EventManager } from "./event";
 import { LOC, Localiser, TLocalisedString } from "./localiser";
 import { MaterialMapManager } from "./material-map";
@@ -19,6 +20,11 @@ import { LOG_ERROR, Logger } from "./util/log_util";
 import { Vector3 } from "./vector";
 import { WorkerController } from "./worker_controller";
 import { TFromWorkerMessage } from "./worker_types";
+import {
+  TTexelInterpolation,
+  TTexelExtension,
+  TTransparencyOptions,
+} from "./ui/types"; // Added
 
 export class AppContext {
   /* Singleton */
@@ -140,12 +146,46 @@ export class AppContext {
         this.minConstraint.z > 0 && this.minConstraint.z <= this.maxConstraint.z
       );
 
-      console.log('Import result materials:', resultImport.result.materials);
-      this._materialManager = new MaterialMapManager(
-        resultImport.result.materials
-      );
-      console.log('Created MaterialMapManager with size:', this._materialManager.materials.size);
+      // Restored original log, or a similar less verbose one.
+      console.log("Import result materials:", resultImport.result.materials);
+      let materialsData: Map<string, any> = resultImport.result.materials;
+      if (!(materialsData instanceof Map)) {
+        // Kept this more specific warning as it's useful.
+        console.warn(
+          "[AppContext._import] Warning: resultImport.result.materials from worker was not a Map instance. Using empty Map instead. Received type:",
+          typeof materialsData,
+          "Value:",
+          materialsData
+        );
+        materialsData = new Map<string, any>();
+      }
+
+      if (materialsData.size === 0) {
+        const defaultMaterialName = "default_material";
+        // This specific log for creating the default material was requested to be kept.
+        console.log(
+          `[AppContext._import] No materials from worker. Creating default textured material: '${defaultMaterialName}'`
+        );
+        const defaultMaterial = {
+          type: MaterialType.textured,
+          name: defaultMaterialName,
+          diffuse: undefined, // Optional: Explicitly undefined or remove if handled by consuming code
+          interpolation: "linear" as TTexelInterpolation,
+          extension: "repeat" as TTexelExtension,
+          transparency: { type: "None" } as TTransparencyOptions, // Assuming TTransparencyOptions is compatible with {type: 'None'}
+          canBeTextured: true, // Default for a new textured material
+          needsAttention: true, // Flag for UI to highlight or auto-open this material
+        };
+        materialsData.set(defaultMaterialName, defaultMaterial);
+      }
+
+      this._materialManager = new MaterialMapManager(materialsData);
+      console.log(
+        "Created MaterialMapManager with size:",
+        this._materialManager.materials.size
+      ); // Restored original log
       VueUIBridge.Get.updateMaterials(this._materialManager);
+      // The log for 'Called VueUIBridge.updateMaterials.' can be omitted to reduce verbosity further.
 
       this._loadedFilename = file.name.split(".")[0] ?? "result";
     }
@@ -425,7 +465,7 @@ export class AppContext {
       if (action === EAction.Import) {
         // After import, enable Materials and Voxelise
         VueUIBridge.Get.enableTo(EAction.Voxelise);
-        console.log('Actions enabled after import:', {
+        console.log("Actions enabled after import:", {
           Settings: VueUIBridge.Get.isEnabled(EAction.Settings),
           Import: VueUIBridge.Get.isEnabled(EAction.Import),
           Materials: VueUIBridge.Get.isEnabled(EAction.Materials),

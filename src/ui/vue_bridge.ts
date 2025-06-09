@@ -2,6 +2,7 @@ import { reactive, ref } from 'vue';
 import { EAction } from '../util';
 import { TLocalisedString } from '../localiser';
 import { MaterialMapManager } from '../material-map';
+import { MaterialUIData, SolidMaterialUIData, TexturedMaterialUIData, BaseMaterialUIData, MaterialType, RGBA } from '../types';
 import { Palette } from '../palette';
 import { PALETTE_ALL_RELEASE } from '../../res/palettes/all';
 
@@ -110,21 +111,69 @@ class VueUIBridge implements VueUIState {
   }
 
   updateMaterials(materialManager: MaterialMapManager): void {
-    // Convert materials to UI format
-    const materialsArray: any[] = [];
-    console.log('updateMaterials called, materials map size:', materialManager.materials.size);
-    materialManager.materials.forEach((material, name) => {
-      console.log('Processing material:', name, material);
-      materialsArray.push({
-        name,
-        type: material.type,
-        // Add color based on material type
-        colour: (material as any).colour || (material as any).color || null,
-        // Add other material properties as needed
-      });
-    });
-    console.log('Final materials array:', materialsArray);
-    this.materials.value = materialsArray;
+    const newMaterialsArray: MaterialUIData[] = [];
+    // console.log('[VueUIBridge.updateMaterials] Called. Input materials map size:', materialManager.materials.size); // REMOVED
+
+    if (materialManager.materials.size > 0) {
+        materialManager.materials.forEach((coreMaterial: any, name: string) => {
+            // console.log(`[VueUIBridge.updateMaterials] Processing coreMaterial - Name: '${name}', Type: ${coreMaterial.type}, Data:`, coreMaterial ? JSON.parse(JSON.stringify(coreMaterial)) : 'undefined/null'); // REMOVED
+            let uiMaterial: MaterialUIData | null = null;
+
+            if (coreMaterial.type === MaterialType.solid) {
+                uiMaterial = {
+                    name,
+                    type: MaterialType.solid,
+                    colour: coreMaterial.colour || { r: 1, g: 1, b: 1, a: 1 } as RGBA,
+                    canBeTextured: coreMaterial.canBeTextured !== undefined ? coreMaterial.canBeTextured : true,
+                } as SolidMaterialUIData;
+            } else if (coreMaterial.type === MaterialType.textured) {
+                const transparencyData = coreMaterial.transparency || { type: 'None' };
+                uiMaterial = {
+                    name: coreMaterial.name || name,
+                    type: MaterialType.textured,
+                    canBeTextured: true,
+                    diffuseMap: coreMaterial.diffuseMap || coreMaterial.diffuse || null,
+                    interpolation: coreMaterial.interpolation || 'linear',
+                    extension: coreMaterial.extension || 'repeat',
+                    transparency: {
+                        type: transparencyData.type || 'None',
+                        alphaValue: transparencyData.alphaValue,
+                        alphaMap: transparencyData.alphaMap || null,
+                        alphaChannel: transparencyData.alphaChannel,
+                    },
+                } as TexturedMaterialUIData;
+            } else {
+                // console.warn(`[VueUIBridge.updateMaterials] Unknown material type for '${name}':`, coreMaterial.type); // Keep this warn? For now, removing all.
+                uiMaterial = {
+                    name,
+                    type: coreMaterial.type,
+                    canBeTextured: false,
+                } as BaseMaterialUIData;
+            }
+
+            if (uiMaterial) {
+                // console.log(`[VueUIBridge.updateMaterials] Created uiMaterial for '${uiMaterial.name}':`, uiMaterial ? JSON.parse(JSON.stringify(uiMaterial)) : 'undefined/null'); // REMOVED
+                newMaterialsArray.push(uiMaterial);
+            }
+        });
+    } else {
+        // console.log('[VueUIBridge.updateMaterials] Received empty materials map from MaterialMapManager.'); // REMOVED
+    }
+
+    // REMOVED --- UI-VISIBLE DEBUG DATA ---
+    // const debugMaterial: SolidMaterialUIData = {
+    //     name: "---DEBUG_MATERIAL_TEST---",
+    //     type: MaterialType.solid,
+    //     colour: { r: 1.0, g: 0.0, b: 1.0, a: 1.0 } as RGBA,
+    //     canBeTextured: false
+    // };
+    // newMaterialsArray.push(debugMaterial);
+    // console.log('[VueUIBridge.updateMaterials] Added hardcoded ---DEBUG_MATERIAL_TEST---.'); // REMOVED
+    // --- END UI-VISIBLE DEBUG DATA ---
+
+    // console.log('[VueUIBridge.updateMaterials] Final newMaterialsArray to be assigned (snapshot):', newMaterialsArray ? JSON.parse(JSON.stringify(newMaterialsArray)) : 'undefined/null'); // REMOVED
+    this.materials.value = newMaterialsArray;
+    // console.log('[VueUIBridge.updateMaterials] this.materials.value updated.'); // REMOVED
   }
 
   // Legacy compatibility methods to replace UI.Get calls

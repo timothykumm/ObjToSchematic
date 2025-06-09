@@ -7,7 +7,7 @@
           <div class="properties-content-vue" v-if="appContextReady">
             <SettingsGroup :appContext="appContext" :disabled="!isActionEnabled('Settings')" />
             <ImportGroup :appContext="appContext" :disabled="!isActionEnabled('Import')" :isImporting="isBusy" />
-            <MaterialsGroup :appContext="appContext" :disabled="!isActionEnabled('Materials')" :materials="materials" />
+            <MaterialsGroup :appContext="appContext" :disabled="!isActionEnabled('Materials')" :materials="materialsForTemplate" />
             <VoxeliseGroup :appContext="appContext" :disabled="!isActionEnabled('Voxelise')" :isVoxelising="isBusy" />
             <AssignGroup :appContext="appContext" :disabled="!isActionEnabled('Assign')" />
             <ExportGroup :appContext="appContext" :disabled="!isActionEnabled('Export')" />
@@ -29,7 +29,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref, computed, watch, PropType, getCurrentInstance } from 'vue';
+import { defineComponent, onMounted, ref, computed, watch, PropType, getCurrentInstance, watchEffect } from 'vue';
+import { VueUIBridge } from '../vue_bridge'; // Added import
 import { EAction } from '../../util';
 import Header from './Header.vue';
 import Console from './Console.vue';
@@ -61,7 +62,7 @@ export default defineComponent({
   },
   setup() {
     const isBusy = ref(false);
-    const materials = ref<MaterialUIData[]>([]);
+    // const materials = ref<MaterialUIData[]>([]); // REMOVED
     const appContext = ref<AppContext | null>(null);
     const appContextReady = ref(false);
     const vueBridge = ref<any>(null);
@@ -69,20 +70,28 @@ export default defineComponent({
     // Get the current Vue instance to access global properties
     const instance = getCurrentInstance();
 
+    const materialsForTemplate = computed(() => {
+      const currentMaterials = VueUIBridge.Get.materials.value;
+      // console.log('[Layout.vue computed materialsForTemplate] VueUIBridge.Get.materials.value:', currentMaterials ? JSON.parse(JSON.stringify(currentMaterials)) : String(currentMaterials)); // REMOVED
+      return currentMaterials ?? []; // Ensure it's always an array for the prop
+    });
+
     onMounted(() => {
-      // Check for AppContext availability
+      // console.log('[Layout.vue] onMounted hook entered.'); // REMOVED
       const checkAppContext = () => {
+        // console.log('[Layout.vue checkAppContext] Entered.'); // REMOVED
+        // console.log('[Layout.vue checkAppContext] $appContextReady status:', instance?.appContext.config.globalProperties.$appContextReady); // REMOVED
         if (instance?.appContext.config.globalProperties.$appContextReady) {
+          // console.log('[Layout.vue checkAppContext] AppContext is ready.'); // REMOVED
           appContext.value = instance.appContext.config.globalProperties.$appContext;
           appContextReady.value = true;
           vueBridge.value = appContext.value!.getVueUIBridge();
-          materials.value = vueBridge.value.materials.value;
-          
-          // Watch for materials changes to keep them synchronized
-          watch(() => vueBridge.value.materials.value, (newMaterials) => {
-            materials.value = newMaterials;
-          }, { deep: true });
+          // console.log('[Layout.vue checkAppContext] Assigned vueBridge.value:', vueBridge.value); // REMOVED
+          // console.log('[Layout.vue checkAppContext] vueBridge.value.materials (the ref object):', vueBridge.value.materials); // REMOVED
+
+          // REMOVED initial sync and watchEffect for local materials
         } else {
+          // console.log('[Layout.vue checkAppContext] AppContext not ready, scheduling retry.'); // REMOVED
           setTimeout(checkAppContext, 50);
         }
       };
@@ -138,7 +147,7 @@ export default defineComponent({
     // Expose to template
     return {
         isBusy,
-        materials,
+        materialsForTemplate, // MODIFIED
         appContext,
         appContextReady,
         vueBridge,

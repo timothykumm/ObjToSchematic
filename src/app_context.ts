@@ -4,6 +4,7 @@ import { AppAnalytics } from "./analytics";
 import { FallableBehaviour } from "./block_mesh";
 import { ArcballCamera } from "./camera";
 import { AppConfig } from "./config";
+import { MaterialType } from "./mesh";
 import { EAppEvent, EventManager } from "./event";
 import { LOC, Localiser, TLocalisedString } from "./localiser";
 import { MaterialMapManager } from "./material-map";
@@ -19,6 +20,7 @@ import { LOG_ERROR, Logger } from "./util/log_util";
 import { Vector3 } from "./vector";
 import { WorkerController } from "./worker_controller";
 import { TFromWorkerMessage } from "./worker_types";
+import { TTexelInterpolation, TTexelExtension, TTransparencyOptions } from './ui/types'; // Added
 
 export class AppContext {
   /* Singleton */
@@ -93,6 +95,28 @@ export class AppContext {
     return VueUIBridge.Get;
   }
 
+  // New method here
+  public handleMaterialTypeChange(materialName: string, newType: MaterialType) {
+    if (this._materialManager) {
+      this._materialManager.changeMaterialType(materialName, newType);
+      console.log(`[AppContext] Material type changed for '${materialName}' to ${newType}. Triggering UI update.`);
+      VueUIBridge.Get.updateMaterials(this._materialManager);
+    } else {
+      console.error('[AppContext] MaterialManager not initialized when trying to change material type.');
+    }
+  }
+
+  // New method here
+  public updateMaterialProperty(materialName: string, propertyName: string, value: any) {
+    if (this._materialManager) {
+      this._materialManager.updateMaterialProperty(materialName, propertyName, value);
+      console.log(`[AppContext] Property '${propertyName}' for material '${materialName}' updated. Triggering UI refresh.`);
+      VueUIBridge.Get.updateMaterials(this._materialManager);
+    } else {
+      console.error('[AppContext] MaterialManager not initialized when trying to update material property.');
+    }
+  }
+
   private async _import(): Promise<boolean> {
     // Gather data from the UI to send to the worker
     const components = VueUIBridge.Get.layout.import.components;
@@ -140,12 +164,36 @@ export class AppContext {
         this.minConstraint.z > 0 && this.minConstraint.z <= this.maxConstraint.z
       );
 
+      // Restored original log, or a similar less verbose one.
       console.log('Import result materials:', resultImport.result.materials);
-      this._materialManager = new MaterialMapManager(
-        resultImport.result.materials
-      );
-      console.log('Created MaterialMapManager with size:', this._materialManager.materials.size);
+      let materialsData: Map<string, any> = resultImport.result.materials;
+      if (!(materialsData instanceof Map)) {
+          // Kept this more specific warning as it's useful.
+          console.warn('[AppContext._import] Warning: resultImport.result.materials from worker was not a Map instance. Using empty Map instead. Received type:', typeof materialsData, 'Value:', materialsData);
+          materialsData = new Map<string, any>();
+      }
+
+      if (materialsData.size === 0) {
+          const defaultMaterialName = 'default_material';
+          // This specific log for creating the default material was requested to be kept.
+          console.log(`[AppContext._import] No materials from worker. Creating default textured material: '${defaultMaterialName}'`);
+          const defaultMaterial = {
+              type: MaterialType.textured,
+              name: defaultMaterialName,
+              diffuse: undefined, // Optional: Explicitly undefined or remove if handled by consuming code
+              interpolation: 'linear' as TTexelInterpolation,
+              extension: 'repeat' as TTexelExtension,
+              transparency: { type: 'None' } as TTransparencyOptions, // Assuming TTransparencyOptions is compatible with {type: 'None'}
+              canBeTextured: true, // Default for a new textured material
+              needsAttention: true // Flag for UI to highlight or auto-open this material
+          };
+          materialsData.set(defaultMaterialName, defaultMaterial);
+      }
+
+      this._materialManager = new MaterialMapManager(materialsData);
+      console.log('Created MaterialMapManager with size:', this._materialManager.materials.size); // Restored original log
       VueUIBridge.Get.updateMaterials(this._materialManager);
+      // The log for 'Called VueUIBridge.updateMaterials.' can be omitted to reduce verbosity further.
 
       this._loadedFilename = file.name.split(".")[0] ?? "result";
     }

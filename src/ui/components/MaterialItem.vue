@@ -227,6 +227,7 @@ export default defineComponent({
       transparencyTypeOptions,
       imageChannelOptions,
       LOC,
+      MaterialType, // Added MaterialType
     };
   },
 });

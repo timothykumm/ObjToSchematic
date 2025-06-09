@@ -14,7 +14,8 @@
       "Bash(npm run dist:*)",
       "Bash(npm start)",
       "Bash(pkill:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

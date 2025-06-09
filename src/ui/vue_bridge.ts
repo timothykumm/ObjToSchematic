@@ -112,7 +112,9 @@ class VueUIBridge implements VueUIState {
   updateMaterials(materialManager: MaterialMapManager): void {
     // Convert materials to UI format
     const materialsArray: any[] = [];
+    console.log('updateMaterials called, materials map size:', materialManager.materials.size);
     materialManager.materials.forEach((material, name) => {
+      console.log('Processing material:', name, material);
       materialsArray.push({
         name,
         type: material.type,
@@ -121,6 +123,7 @@ class VueUIBridge implements VueUIState {
         // Add other material properties as needed
       });
     });
+    console.log('Final materials array:', materialsArray);
     this.materials.value = materialsArray;
   }
 

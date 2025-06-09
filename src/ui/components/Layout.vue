@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref, computed, PropType, getCurrentInstance } from 'vue';
+import { defineComponent, onMounted, ref, computed, watch, PropType, getCurrentInstance } from 'vue';
 import { EAction } from '../../util';
 import Header from './Header.vue';
 import Console from './Console.vue';
@@ -77,6 +77,11 @@ export default defineComponent({
           appContextReady.value = true;
           vueBridge.value = appContext.value!.getVueUIBridge();
           materials.value = vueBridge.value.materials.value;
+          
+          // Watch for materials changes to keep them synchronized
+          watch(() => vueBridge.value.materials.value, (newMaterials) => {
+            materials.value = newMaterials;
+          }, { deep: true });
         } else {
           setTimeout(checkAppContext, 50);
         }

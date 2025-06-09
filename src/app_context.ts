@@ -433,11 +433,21 @@ export class AppContext {
 
     AppConsole.info(LOC("export.exporting_structure"));
     {
+      // ---- START MODIFICATION ----
+      const exporterValueFromUI = components.export.getValue();
+      console.log(
+        "[AppContext._export] DIAGNOSTIC: Value from components.export.getValue() =",
+        exporterValueFromUI,
+        "; typeof =",
+        typeof exporterValueFromUI
+      );
+      // ---- END MODIFICATION ----
+
       // Instruct the worker to perform the job and await the result
       const resultExport = await this._workerController.execute({
         action: "Export",
         params: {
-          exporter: components.export.getValue(),
+          exporter: exporterValueFromUI, // Ensure this uses the new variable
         },
       });
 

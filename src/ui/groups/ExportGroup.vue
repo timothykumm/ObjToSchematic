@@ -1,6 +1,8 @@
 <template>
   <div class="export-group-vue">
-    <h3 class="group-heading-vue">{{ LOC('export.heading' as TLocalisedKey) }}</h3>
+    <h3 class="group-heading-vue">
+      {{ LOC("export.heading" as TLocalisedKey) }}
+    </h3>
     <div class="group-components-vue">
       <Combobox
         :label="LOC('export.components.exporter' as TLocalisedKey)"
@@ -22,21 +24,22 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, PropType, computed } from 'vue'; // Added computed
-import { LOC, TLocalisedKey } from '../../localiser';
-import { AppContext } from '../../app_context';
+import { defineComponent, ref, PropType, computed, watch } from "vue"; // 'watch' is added
+import { LOC, TLocalisedKey } from "../../localiser";
+import { AppContext } from "../../app_context";
 // AppConfig is not used for EXPORT_TYPE as it wasn't in AppConfig
 // import { AppConfig } from '../../config';
-import { EAction } from '../../util';
-import { TExporters } from '../../exporters/exporters';
-import Combobox from '../components/Combobox.vue';
-import { ComboboxItem } from '../types';
-import Button from '../components/Button.vue';
+import { EAction } from "../../util";
+import { TExporters } from "../../exporters/exporters";
+import Combobox from "../components/Combobox.vue";
+import { ComboboxItem } from "../types";
+import Button from "../components/Button.vue";
+import { VueUIBridge } from "../../ui/vue_bridge"; // This line is added
 
-const DEFAULT_EXPORTER: TExporters = 'litematic';
+const DEFAULT_EXPORTER: TExporters = "litematic";
 
 export default defineComponent({
-  name: 'ExportGroup',
+  name: "ExportGroup",
   components: { Combobox, Button },
   props: {
     disabled: { type: Boolean, default: false },
@@ -46,13 +49,41 @@ export default defineComponent({
   setup(props) {
     const exporterValue = ref<TExporters>(DEFAULT_EXPORTER);
 
+    // ---- THIS IS THE NEWLY ADDED LOGIC ----
+    // Ensure VueUIBridge is updated when exporterValue changes
+    watch(exporterValue, (newValue) => {
+      VueUIBridge.Get.setComponentValue("export", "export", newValue);
+    });
+
+    // Set the initial value in VueUIBridge on component setup
+    VueUIBridge.Get.setComponentValue("export", "export", exporterValue.value);
+    // ---- END OF NEWLY ADDED LOGIC ----
+
     const exporterOptions = computed((): ComboboxItem<TExporters>[] => [
-      { payload: 'litematic', displayLocKey: 'export.components.litematic' as TLocalisedKey },
-      { payload: 'schematic', displayLocKey: 'export.components.schematic' as TLocalisedKey },
-      { payload: 'schem', displayLocKey: 'export.components.sponge_schematic' as TLocalisedKey },
-      { payload: 'nbt', displayLocKey: 'export.components.structure_blocks' as TLocalisedKey },
-      { payload: 'indexed_json', displayLocKey: 'export.components.indexed_json' as TLocalisedKey },
-      { payload: 'uncompressed_json', displayLocKey: 'export.components.uncompressed_json' as TLocalisedKey },
+      {
+        payload: "litematic",
+        displayLocKey: "export.components.litematic" as TLocalisedKey,
+      },
+      {
+        payload: "schematic",
+        displayLocKey: "export.components.schematic" as TLocalisedKey,
+      },
+      {
+        payload: "schem",
+        displayLocKey: "export.components.sponge_schematic" as TLocalisedKey,
+      },
+      {
+        payload: "nbt",
+        displayLocKey: "export.components.structure_blocks" as TLocalisedKey,
+      },
+      {
+        payload: "indexed_json",
+        displayLocKey: "export.components.indexed_json" as TLocalisedKey,
+      },
+      {
+        payload: "uncompressed_json",
+        displayLocKey: "export.components.uncompressed_json" as TLocalisedKey,
+      },
     ]);
 
     const handleExportAction = () => {

@@ -1,26 +1,12 @@
 <template>
-  <router-view v-slot="{ Component }: { Component: import('vue').Component }">
-    <component :is="Component" :appContext="appContext" />
-  </router-view>
+  <router-view />
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue'; // Removed 'Component as VueComponent'
-// Layout is no longer directly used here, router handles it.
-// import Layout from './ui/components/Layout.vue';
-import { AppContext } from './app_context'; // For appContext prop type
+import { defineComponent } from 'vue';
 
 export default defineComponent({
-  name: 'App',
-  components: {
-    // Layout, // No longer a direct component
-  },
-  props: {
-    appContext: {
-      type: Object as PropType<AppContext>,
-      required: true,
-    }
-  }
+  name: 'App'
 });
 </script>
 

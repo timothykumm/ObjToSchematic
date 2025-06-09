@@ -4,7 +4,7 @@
       <div class="column-sidebar">
         <div class="column-properties">
           <Header />
-          <div class="properties-content-vue">
+          <div class="properties-content-vue" v-if="appContextReady">
             <SettingsGroup :appContext="appContext" :disabled="isBusy" />
             <ImportGroup :appContext="appContext" :disabled="isBusy" :isImporting="isBusy" />
             <MaterialsGroup :appContext="appContext" :disabled="isBusy" :materials="materials" />
@@ -12,43 +12,27 @@
             <AssignGroup :appContext="appContext" :disabled="isBusy" />
             <ExportGroup :appContext="appContext" :disabled="isBusy" />
           </div>
+          <div v-else class="loading-message">
+            Initializing application...
+          </div>
         </div>
         <div class="column-console">
-          <p>Console output will appear here.</p>
+          <Console />
         </div>
       </div>
       <div class="column-canvas">
-        <canvas id="app-canvas"></canvas> <!-- Renamed to avoid conflict if old canvas is still in DOM -->
-        <div class="toolbar">
-          <!-- Placeholder for toolbar items from layout.ts -->
-          <div class="toolbar-left-vue">
-            <div class="toolbar-group-vue">
-              <span>MESH</span> | <span>VOXEL</span> | <span>BLOCK</span>
-            </div>
-            <div class="toolbar-group-vue">
-              <span>GRID</span> | <span>AXES</span> | <span>NIGHT</span>
-            </div>
-            <div class="toolbar-group-vue">
-              <span>SLICE</span> | <span>PLUS</span> | <span>MINUS</span>
-            </div>
-          </div>
-          <div class="toolbar-right-vue">
-            <div class="toolbar-group-vue">
-              <span>PERSP</span> | <span>ORTHO</span>
-            </div>
-            <div class="toolbar-group-vue">
-              <span>ZOOM-</span> | <span>ZOOM+</span> | <span>RESET</span>
-            </div>
-          </div>
-        </div>
+        <canvas id="canvas"></canvas>
+        <Toolbar v-if="appContextReady" :appContext="appContext" />
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, ref, computed, PropType } from 'vue';
+import { defineComponent, onMounted, ref, computed, PropType, getCurrentInstance } from 'vue';
 import Header from './Header.vue';
+import Console from './Console.vue';
+import Toolbar from './Toolbar.vue';
 import Split from 'split.js';
 
 // Import Group Components
@@ -65,6 +49,8 @@ export default defineComponent({
   name: 'Layout',
   components: {
     Header,
+    Console,
+    Toolbar,
     SettingsGroup,
     ImportGroup,
     MaterialsGroup,
@@ -72,28 +58,32 @@ export default defineComponent({
     AssignGroup,
     ExportGroup,
   },
-  props: {
-    appContext: {
-        type: Object as PropType<AppContext>,
-        required: true,
-    }
-  },
-  setup(props) {
+  setup() {
     const isBusy = ref(false);
     const materials = ref<MaterialUIData[]>([]);
+    const appContext = ref<AppContext | null>(null);
+    const appContextReady = ref(false);
+    const vueBridge = ref<any>(null);
+
+    // Get the current Vue instance to access global properties
+    const instance = getCurrentInstance();
 
     onMounted(() => {
-        // TODO: Implement a way for AppContext to provide materials reactively.
-        // For example, AppContext could emit an event or provide a reactive getter.
-        // if (props.appContext) {
-        //   props.appContext.on('materialsUpdated', (newMaterials) => {
-        //     materials.value = newMaterials;
-        //   });
-        //   materials.value = props.appContext.getInitialMaterials(); // Hypothetical
-        // }
-        // console.log("Layout.vue: TODO: Load materials from appContext into reactive 'materials' ref");
+      // Check for AppContext availability
+      const checkAppContext = () => {
+        if (instance?.appContext.config.globalProperties.$appContextReady) {
+          appContext.value = instance.appContext.config.globalProperties.$appContext;
+          appContextReady.value = true;
+          vueBridge.value = appContext.value!.getVueUIBridge();
+          materials.value = vueBridge.value.materials.value;
+        } else {
+          setTimeout(checkAppContext, 50);
+        }
+      };
+      checkAppContext();
 
-        Split(['.column-sidebar', '.column-canvas'], {
+      // Setup Split.js when component mounts
+      Split(['.column-sidebar', '.column-canvas'], {
         sizes: [30, 70],
         minSize: [300, 400],
         gutterSize: 8,
@@ -122,6 +112,9 @@ export default defineComponent({
     return {
         isBusy,
         materials,
+        appContext,
+        appContextReady,
+        vueBridge,
     };
   },
 });
@@ -191,6 +184,12 @@ export default defineComponent({
   margin-top: 15px;
 }
 
+.loading-message {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
 
 .column-console {
   min-height: 50px;
@@ -210,51 +209,12 @@ export default defineComponent({
   overflow: hidden;
 }
 
-#app-canvas {
+#canvas {
   flex-grow: 1;
   display: block;
   width: 100%;
 }
 
-.toolbar {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  display: flex;
-  justify-content: space-between;
-  pointer-events: none;
-  z-index: 20;
-}
-
-.toolbar-left-vue, .toolbar-right-vue {
-  display: flex;
-  gap: 10px;
-  pointer-events: all;
-}
-
-.toolbar-right-vue {
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.toolbar-group-vue {
-  background-color: rgba(248, 249, 250, 0.85);
-  padding: 8px;
-  border-radius: 4px;
-  display: flex;
-  gap: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.toolbar-group-vue span {
-  cursor: pointer;
-  padding: 2px 4px;
-}
-.toolbar-group-vue span:hover {
-  background-color: rgba(0,0,0,0.1);
-  border-radius: 2px;
-}
 
 .gutter {
   background-color: #adb5bd;

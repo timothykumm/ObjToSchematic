@@ -11,6 +11,7 @@ import { MouseManager } from './mouse';
 import { MeshType, Renderer } from './renderer';
 import { AppConsole, TMessage } from './ui/console';
 import { UI } from './ui/layout';
+import { VueUIBridge } from './ui/vue_bridge';
 import { ColourSpace, EAction } from './util';
 import { ASSERT } from './util/error_util';
 import { download, downloadAsZip } from './util/file_util';
@@ -54,11 +55,12 @@ export class AppContext {
 
         EventManager.Get.bindToContext(this.Get);
 
-        UI.Get.bindToContext(this.Get);
-        UI.Get.build();
-        UI.Get.registerEvents();
-        UI.Get.updateMaterialsAction(this.Get._materialManager);
-        UI.Get.disableAll();
+        // Initialize Vue UI Bridge
+        VueUIBridge.Get.bindToContext(this.Get);
+        VueUIBridge.Get.build();
+        VueUIBridge.Get.registerEvents();
+        VueUIBridge.Get.updateMaterials(this.Get._materialManager);
+        VueUIBridge.Get.disableAll();
 
         ArcballCamera.Get.init();
         MouseManager.Get.init();
@@ -66,7 +68,7 @@ export class AppContext {
         window.addEventListener('contextmenu', (e) => e.preventDefault());
 
         this.Get._workerController.execute({ action: 'Init', params: {}}).then(() => {
-            UI.Get.enableTo(EAction.Import);
+            VueUIBridge.Get.enableTo(EAction.Import);
             AppConsole.success(LOC('init.ready'));
         });
 
@@ -82,9 +84,13 @@ export class AppContext {
         return this._lastAction;
     }
 
+    public getVueUIBridge() {
+        return VueUIBridge.Get;
+    }
+
     private async _import(): Promise<boolean> {
         // Gather data from the UI to send to the worker
-        const components = UI.Get.layout.import.components;
+        const components = VueUIBridge.Get.layout.import.components;
         let filetype: string;
 
         AppConsole.info(LOC('import.importing_mesh'));
@@ -101,7 +107,7 @@ export class AppContext {
                 },
             });
 
-            UI.Get.getActionButton(EAction.Import)?.resetLoading();
+            VueUIBridge.Get.getActionButton(EAction.Import)?.resetLoading();
             if (this._handleErrors(resultImport)) {
                 return false;
             }
@@ -110,19 +116,19 @@ export class AppContext {
             AppConsole.success(LOC('import.imported_mesh'));
             this._addWorkerMessagesToConsole(resultImport.messages);
 
-            UI.Get._ui.voxelise.components.constraintAxis.setValue('y');
-            UI.Get._ui.voxelise.components.size.setValue(80);
+            VueUIBridge.Get._ui.voxelise.components.constraintAxis.setValue('y');
+            VueUIBridge.Get._ui.voxelise.components.size.setValue(80);
 
             this.minConstraint = Vector3.copy(resultImport.result.dimensions)
                 .mulScalar(AppConfig.Get.CONSTRAINT_MINIMUM_HEIGHT).ceil();
             this.maxConstraint = Vector3.copy(resultImport.result.dimensions)
                 .mulScalar(AppConfig.Get.CONSTRAINT_MAXIMUM_HEIGHT).floor();
 
-            UI.Get._ui.voxelise.components.constraintAxis.setOptionEnabled(0, this.minConstraint.x > 0 && this.minConstraint.x <= this.maxConstraint.x);
-            UI.Get._ui.voxelise.components.constraintAxis.setOptionEnabled(2, this.minConstraint.z > 0 && this.minConstraint.z <= this.maxConstraint.z);
+            VueUIBridge.Get._ui.voxelise.components.constraintAxis.setOptionEnabled(0, this.minConstraint.x > 0 && this.minConstraint.x <= this.maxConstraint.x);
+            VueUIBridge.Get._ui.voxelise.components.constraintAxis.setOptionEnabled(2, this.minConstraint.z > 0 && this.minConstraint.z <= this.maxConstraint.z);
 
             this._materialManager = new MaterialMapManager(resultImport.result.materials);
-            UI.Get.updateMaterialsAction(this._materialManager);
+            VueUIBridge.Get.updateMaterials(this._materialManager);
 
             this._loadedFilename = file.name.split('.')[0] ?? 'result';
         }
@@ -135,7 +141,7 @@ export class AppContext {
                 params: {},
             });
 
-            UI.Get.getActionButton(EAction.Import)?.resetLoading();
+            VueUIBridge.Get.getActionButton(EAction.Import)?.resetLoading();
             if (this._handleErrors(resultRender)) {
                 return false;
             }
@@ -164,7 +170,7 @@ export class AppContext {
                 },
             });
 
-            UI.Get.getActionButton(EAction.Materials)?.resetLoading();
+            VueUIBridge.Get.getActionButton(EAction.Materials)?.resetLoading();
             if (this._handleErrors(resultMaterials)) {
                 return false;
             }
@@ -187,7 +193,7 @@ export class AppContext {
 
     private async _voxelise(): Promise<boolean> {
         // Gather data from the UI to send to the worker
-        const components = UI.Get.layout.voxelise.components;
+        const components = VueUIBridge.Get.layout.voxelise.components;
 
         AppConsole.info(LOC('voxelise.loading_voxel_mesh'));
         {
@@ -204,7 +210,7 @@ export class AppContext {
                 },
             });
 
-            UI.Get.getActionButton(EAction.Voxelise)?.resetLoading();
+            VueUIBridge.Get.getActionButton(EAction.Voxelise)?.resetLoading();
             if (this._handleErrors(resultVoxelise)) {
                 return false;
             }
@@ -227,7 +233,7 @@ export class AppContext {
                     },
                 });
 
-                UI.Get.getActionButton(EAction.Voxelise)?.resetLoading();
+                VueUIBridge.Get.getActionButton(EAction.Voxelise)?.resetLoading();
                 if (this._handleErrors(resultRender)) {
                     return false;
                 }
@@ -254,7 +260,7 @@ export class AppContext {
 
     private async _assign(): Promise<boolean> {
         // Gather data from the UI to send to the worker
-        const components = UI.Get.layout.assign.components;
+        const components = VueUIBridge.Get.layout.assign.components;
 
         AppConsole.info(LOC('assign.loading_block_mesh'));
         {
@@ -276,7 +282,7 @@ export class AppContext {
                 },
             });
 
-            UI.Get.getActionButton(EAction.Assign)?.resetLoading();
+            VueUIBridge.Get.getActionButton(EAction.Assign)?.resetLoading();
             if (this._handleErrors(resultAssign)) {
                 return false;
             }
@@ -300,7 +306,7 @@ export class AppContext {
                     },
                 });
 
-                UI.Get.getActionButton(EAction.Assign)?.resetLoading();
+                VueUIBridge.Get.getActionButton(EAction.Assign)?.resetLoading();
                 if (this._handleErrors(resultRender)) {
                     return false;
                 }
@@ -329,7 +335,7 @@ export class AppContext {
 
     private async _export(): Promise<boolean> {
         // Gather data from the UI to send to the worker
-        const components = UI.Get.layout.export.components;
+        const components = VueUIBridge.Get.layout.export.components;
 
         AppConsole.info(LOC('export.exporting_structure'));
         {
@@ -341,7 +347,7 @@ export class AppContext {
                 },
             });
 
-            UI.Get.getActionButton(EAction.Export)?.resetLoading();
+            VueUIBridge.Get.getActionButton(EAction.Export)?.resetLoading();
             if (this._handleErrors(resultExport)) {
                 return false;
             }
@@ -388,19 +394,19 @@ export class AppContext {
 
     public async do(action: EAction) {
         // Disable the UI while the worker is working
-        UI.Get.disableAll();
+        VueUIBridge.Get.disableAll();
 
         this._lastAction = action;
 
         const success = await this._executeAction(action);
         if (success) {
             if (action === EAction.Import) {
-                UI.Get.enableTo(EAction.Voxelise);
+                VueUIBridge.Get.enableTo(EAction.Voxelise);
             } else {
-                UI.Get.enableTo(action + 1);
+                VueUIBridge.Get.enableTo(action + 1);
             }
         } else {
-            UI.Get.enableTo(action);
+            VueUIBridge.Get.enableTo(action);
         }
     }
 
@@ -428,7 +434,7 @@ export class AppContext {
 
     public static draw() {
         Renderer.Get.update();
-        UI.Get.tick(this.Get._workerController.isBusy());
+        VueUIBridge.Get.tick(this.Get._workerController.isBusy());
         Renderer.Get.draw();
     }
 }

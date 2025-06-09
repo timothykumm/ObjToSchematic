@@ -142,8 +142,41 @@ export default defineComponent({
       sizeValue.value = Math.max(currentSizeMin.value, Math.min(currentSizeMax.value, sizeValue.value));
     };
 
+    // Get Vue UI Bridge for state synchronization
+    const vueBridge = props.appContext.getVueUIBridge();
+
+    // Watch for changes and sync with VueUIBridge
+    watch(constraintAxisValue, (newValue) => {
+      vueBridge.setComponentValue('voxelise', 'constraintAxis', newValue);
+    });
+    watch(sizeValue, (newValue) => {
+      vueBridge.setComponentValue('voxelise', 'size', newValue);
+    });
+    watch(voxeliserValue, (newValue) => {
+      vueBridge.setComponentValue('voxelise', 'voxeliser', newValue);
+    });
+    watch(ambientOcclusionValue, (newValue) => {
+      vueBridge.setComponentValue('voxelise', 'ambientOcclusion', newValue);
+    });
+    watch(multisampleColouringValue, (newValue) => {
+      vueBridge.setComponentValue('voxelise', 'useMultisampleColouring', newValue);
+      vueBridge.setComponentValue('voxelise', 'multisampleColouring', newValue);
+    });
+    watch(voxelOverlapRuleValue, (newValue) => {
+      vueBridge.setComponentValue('voxelise', 'voxelOverlapRule', newValue);
+    });
+
     onMounted(() => {
       onConstraintAxisChanged(constraintAxisValue.value);
+      
+      // Initialize values in bridge
+      vueBridge.setComponentValue('voxelise', 'constraintAxis', constraintAxisValue.value);
+      vueBridge.setComponentValue('voxelise', 'size', sizeValue.value);
+      vueBridge.setComponentValue('voxelise', 'voxeliser', voxeliserValue.value);
+      vueBridge.setComponentValue('voxelise', 'ambientOcclusion', ambientOcclusionValue.value);
+      vueBridge.setComponentValue('voxelise', 'useMultisampleColouring', multisampleColouringValue.value);
+      vueBridge.setComponentValue('voxelise', 'multisampleColouring', multisampleColouringValue.value);
+      vueBridge.setComponentValue('voxelise', 'voxelOverlapRule', voxelOverlapRuleValue.value);
     });
 
     const handleVoxeliseAction = () => {

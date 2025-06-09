@@ -4,28 +4,38 @@ import router from './router'; // Import the router
 import { AppContext } from './app_context'; // Import AppContext
 
 async function initialize() {
-  // Initialize AppContext first
-  // AppContext.init() is static, AppContext.Get() returns the instance
-  // The original init was: AppContext.init();
-  // AppContext.init() is static and should be called on the class itself.
-  // AppContext.Get() returns the singleton instance.
-  await AppContext.init();
-  const appContextInstance = AppContext.Get;
-
-  const app = createApp(App, {
-    appContext: appContextInstance // Pass AppContext instance as a prop to App.vue
-  });
-
-  app.use(router); // Use the router
-
+  // First mount Vue app to create the DOM structure
+  const app = createApp(App);
+  app.use(router);
+  
+  // Add a global property for when AppContext is ready
+  app.config.globalProperties.$appContextReady = false;
+  
   app.mount('#app');
 
-  // Original render loop. This needs to be carefully considered.
-  // If AppContext.draw() manipulates DOM outside of Vue's control, it can cause issues.
-  // If it's for WebGL canvas rendering and Vue components are overlays, it might be fine.
-  // For now, keeping it similar to original structure.
+  // Wait for Vue to render the DOM
+  await new Promise(resolve => {
+    const checkCanvas = () => {
+      const canvas = document.getElementById('canvas');
+      if (canvas) {
+        resolve(true);
+      } else {
+        setTimeout(checkCanvas, 10);
+      }
+    };
+    checkCanvas();
+  });
+
+  // Now initialize AppContext after canvas is available
+  await AppContext.init();
+  
+  // Make AppContext available globally
+  app.config.globalProperties.$appContext = AppContext.Get;
+  app.config.globalProperties.$appContextReady = true;
+
+  // Original render loop
   function render() {
-    AppContext.draw(); // AppContext.draw is static
+    AppContext.draw();
     requestAnimationFrame(render);
   }
   requestAnimationFrame(render);

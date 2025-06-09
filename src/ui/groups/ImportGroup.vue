@@ -32,7 +32,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, PropType } from 'vue';
+import { defineComponent, ref, watch, onMounted, PropType } from 'vue';
 import { LOC, TLocalisedKey } from '../../localiser';
 import { AppContext } from '../../app_context';
 import { Renderer } from '../../renderer';
@@ -67,10 +67,23 @@ export default defineComponent({
     const selectedFile = ref<File | null>(null);
     const rotationValue = ref<Vector3Value>({ x: 0, y: 0, z: 0 });
 
-    // Values are held locally. AppContext.do(EAction.Import) will need to
-    // be refactored to accept these as parameters, or read them from a
-    // shared reactive store that this component updates.
-    // Watchers for direct AppContext updates were removed in previous steps.
+    // Get Vue UI Bridge for state synchronization
+    const vueBridge = props.appContext.getVueUIBridge();
+
+    // Watch for changes and sync with VueUIBridge
+    watch(selectedFile, (newFile) => {
+      vueBridge.setComponentValue('import', 'input', newFile);
+    });
+
+    watch(rotationValue, (newRotation) => {
+      vueBridge.setComponentValue('import', 'rotation', newRotation);
+    }, { deep: true });
+
+    // Initialize values in bridge on mount
+    onMounted(() => {
+      vueBridge.setComponentValue('import', 'input', selectedFile.value);
+      vueBridge.setComponentValue('import', 'rotation', rotationValue.value);
+    });
 
     const onAxisHover = (hoverEvent: { axis: TAxis, state: 'enter' | 'exit' }) => {
       if (props.disabled) return;

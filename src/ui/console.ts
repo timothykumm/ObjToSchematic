@@ -20,21 +20,15 @@ export class AppConsole {
     }
 
     public build() {
-        const messagesHTML = new HTMLBuilder();
-
-        messagesHTML.add('<div id="inner-console" class="row-container" style="padding: 5px; height: 100%; overflow: auto; white-space: nowrap;">');
-        {
+        // Vue Console component will handle this
+        this._built = true;
+        
+        // Add existing messages to Vue console if it exists
+        if ((window as any).__vueConsole) {
             this._messages.forEach((message) => {
-                messagesHTML.add(this._getMessageHTML(message));
+                (window as any).__vueConsole.addMessage(message);
             });
         }
-        messagesHTML.add('</div>');
-
-        messagesHTML.placeInto('console');
-
-        this._built = true;
-
-        this._scrollToBottom();
     }
 
     public addLast() {
@@ -42,10 +36,18 @@ export class AppConsole {
             return;
         }
 
-        const consoleElement = UIUtil.getElementById('inner-console') as HTMLDivElement;
-        consoleElement.innerHTML += this._getMessageHTML(this._messages[this._messages.length - 1]);
-
-        this._scrollToBottom();
+        // Use Vue console if available, otherwise fallback to DOM manipulation
+        if ((window as any).__vueConsole) {
+            const lastMessage = this._messages[this._messages.length - 1];
+            (window as any).__vueConsole.addMessage(lastMessage);
+        } else {
+            // Fallback for cases where Vue console isn't ready yet
+            const consoleElement = document.getElementById('inner-console') as HTMLDivElement;
+            if (consoleElement) {
+                consoleElement.innerHTML += this._getMessageHTML(this._messages[this._messages.length - 1]);
+                this._scrollToBottom();
+            }
+        }
     }
 
     private _getMessageHTML(message: TMessage) {
@@ -103,7 +105,12 @@ export class AppConsole {
     }
 
     private _scrollToBottom() {
-        const consoleElement = UIUtil.getElementById('inner-console');
-        consoleElement.scrollTop = consoleElement.scrollHeight;
+        // Vue console handles its own scrolling
+        if (!(window as any).__vueConsole) {
+            const consoleElement = document.getElementById('inner-console');
+            if (consoleElement) {
+                consoleElement.scrollTop = consoleElement.scrollHeight;
+            }
+        }
     }
 }

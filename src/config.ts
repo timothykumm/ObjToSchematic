@@ -18,7 +18,7 @@ export class AppConfig {
     public readonly LOCALE = 'en-GB';
     public readonly VOXEL_BUFFER_CHUNK_SIZE = 50_000;
     public readonly AMBIENT_OCCLUSION_OVERRIDE_CORNER = true;
-    public readonly USE_WORKER_THREAD = true;
+    public readonly USE_WORKER_THREAD = false;
     public readonly MULTISAMPLE_COUNT = 16;
     public readonly ALPHA_BIAS = 1.0;
     public readonly ANGLE_SNAP_RADIUS_DEGREES = 10.0;
